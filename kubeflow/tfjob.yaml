@@ -1,0 +1,74 @@
+apiVersion: "kubeflow.org/v1alpha1"
+kind: "TFJob"
+metadata:
+  name: job-test
+  namespace: kubeflow
+spec:
+  replicaSpecs:
+  - replicas: 1
+    tfReplicaType: MASTER
+    template:
+      spec:
+        serviceAccountName: tf-job-operator
+        containers:
+            #- image: elsonrodriguez/mytfmodel:1.0
+          - image: mnist-tf-model:1.0
+            command: ["sleep", "infinity"]
+            name: tensorflow
+            imagePullPolicy: IfNotPresent
+            env:
+            - name: TF_MODEL_DIR
+              value: /tmp/tf/trained-model
+            volumeMounts:
+            - name: training-data
+              mountPath: /tmp/tf/
+        volumes:
+        - name: training-data
+          hostPath:
+            path: /home/tf/
+        restartPolicy: OnFailure
+  - replicas: 1
+    tfReplicaType: WORKER
+    template:
+      spec:
+        serviceAccountName: tf-job-operator
+        containers:
+            #- image: elsonrodriguez/mytfmodel:1.0
+          - image: mnist-tf-model:1.0
+            command: ["sleep", "infinity"]
+            name: tensorflow
+            imagePullPolicy: IfNotPresent
+            env:
+            - name: TF_MODEL_DIR
+              value: /tmp/tf/trained-model
+            volumeMounts:
+            - name: training-data
+              mountPath: /tmp/tf
+        volumes:
+        - name: training-data
+          hostPath:
+            path: /home/tf/
+        restartPolicy: OnFailure
+  - replicas: 1
+    tfReplicaType: PS
+    template:
+      spec:
+        containers:
+            #- image: elsonrodriguez/mytfmodel:1.0
+          - image: mnist-tf-model:1.0
+            command: ["sleep", "infinity"]
+            name: tensorflow
+            imagePullPolicy: IfNotPresent
+            volumeMounts:
+            - name: training-data
+              mountPath: /tmp/tf
+        volumes:
+        - name: training-data
+          hostPath:
+            path: /home/tf/
+
+        restartPolicy: OnFailure
+  terminationPolicy:
+    chief:
+      replicaIndex: 0
+      replicaName: MASTER
