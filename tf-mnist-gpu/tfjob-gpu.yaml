@@ -1,0 +1,40 @@
+---
+apiVersion: kubeflow.org/v1alpha1
+kind: TFJob
+metadata:
+  name: mnist-tf-job
+  namespace: kubeflow
+spec:
+  replicaSpecs:
+  - replicas: 1
+    template:
+      spec:
+        nodeSelector:
+          kubernetes.io/hostname: "node2"
+        containers:
+        - image: gpu/tf-mnist:v1
+          name: tensorflow
+          command: ["/bin/bash", "/root/tf-mnist-gpu/run.sh"]
+          env:
+            - name: TF_TRAINING_DATA_DIR
+              value: "/tmp/mnist_data/"
+            - name: TF_MODEL_DIR
+              value: "/tmp/mnist_model/"
+            - name: TF_EXPORT_DIR
+              value: "/tmp/trained_model/"
+          resources:
+              limits:
+                  nvidia.com/gpu: 1
+          volumeMounts:
+            - name: data
+              mountPath: /tmp/
+        volumes:
+          - name: data
+            hostPath:
+            path: /root/tf-mnist/
+        restartPolicy: OnFailure
+    tfReplicaType: MASTER
+  terminationPolicy:
+    chief:
+      replicaIndex: 0
+      replicaName: MASTER
